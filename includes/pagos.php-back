@@ -1,0 +1,104 @@
+<?php
+function control_pagos(){
+    ?>
+    <form method="post">
+        <label for="usuario">DNI Usuario:</label>
+        <input type="text" name="dni">
+        <input type="submit" value="Buscar Usuario" name="buscar_dni">
+        </form>
+        <br>
+    <?php
+    global $wpdb;
+
+    if(isset($_POST['guarda_pago'])){
+        if(isset($_POST['mes'])){
+            $mes=$_POST['mes'];
+            $nom_mes=array('Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre');
+            $mes_nombre=$nom_mes[$mes-1];
+        }
+        if(isset($_POST['precio'])){$precio=$_POST['precio'];}
+        if(isset($_POST['pago'])){$pago=$_POST['pago']; } 
+        if(isset($_POST['id_pago'])){$id_pago=$_POST['id_pago'];}
+        if(isset($_POST['comentario'])){$comentario=$_POST['comentario'];}
+        if(isset($_POST['nombre_clase'])){$nombre_clase=$_POST['nombre_clase'];}
+       // if(isset($_POST['email'])){$email=$_POST['email'];}
+        $email="fran.perez@garberinformatica.com";
+        
+        global $wpdb;
+
+        $cambio_pago=array(
+            'mes'=>$mes,
+            'precio'=>$precio,
+            'pagado'=>$pago,
+            'comentario'=>$comentario
+        );
+        $result=$wpdb->update('wp_pagos',$cambio_pago,array('id_pago'=>$id_pago));
+        if($result === false){
+            echo "<h3>No se han podido modificar los datos en la base de datos.</h3>";
+        }else{
+            echo "<h3>Clase pagada. Se le enviará un email para avisarle del pago.</h3>";
+            $msg="Se ha pagado la clase de $nombre_clase por $precio € para el mes de $mes_nombre \n Comentario extra: $comentario";
+            $msg = wordwrap($msg,70);
+            mail("$email","Recibo de pago de clase",$msg);
+        }
+    }
+
+    if(isset($_POST['buscar_dni'])){
+        if(isset($_POST['dni'])){$dni=$_POST['dni'];}
+        
+        $check=$wpdb->get_results("SELECT dni FROM wp_usuarios WHERE dni='$dni'");
+
+        if($check==null){
+            echo "<h3>El DNI introducido no coincide con ningún usuario o es incorrecto</h3>";
+        }else{
+
+        $users=$wpdb->get_results("SELECT dni,nombre, nombre_clase, apellido1,nombre_clase,wp_clases.año,pagado,id_pago,precio_clase,email FROM wp_usuarios INNER JOIN wp_pagos ON wp_usuarios.id=wp_pagos.id_usuario INNER JOIN wp_clases ON wp_pagos.id_clase=wp_clases.id WHERE dni='$dni'");
+        ?>
+                <table>
+                    <tr>
+                        <td bgcolor="lightblue" width="10%" align="center">DNI</td>
+                        <td bgcolor="lightblue" width="10%" align="center">Nombre</td>
+                        <td bgcolor="lightblue" width="10%" align="center">Apellido</td>
+                        <td bgcolor="lightblue" width="10%" align="center">Clase</td>
+                        <td bgcolor="lightblue" width="10%" align="center">Año</td>
+                        <td bgcolor="lightblue" width="5%" align="center">Mes</td>
+                        <td bgcolor="lightblue" width="5%" align="center">Precio</td>
+                        <td bgcolor="lightblue" width="5%" align="center">Pagado</td>
+                        <td bgcolor="lightblue" width="10%" align="center">Comentario</td>
+                        <td bgcolor="lightblue" width="10%" align="center">Pagar</td>
+                    </tr>
+            <?php 
+                $mes=date('n');
+                $nom_mes=array('Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre');
+                $mes_nombre=$nom_mes[$mes-1];
+                foreach($users as $user){ ?>        
+                    <tr>
+                        <td width="10%" align="center"><?php echo $user->dni?></td>
+                        <td width="10%" align="center"><?php echo $user->nombre ?></td>
+                        <td width="10%" align="center"><?php echo $user->apellido1?></td>
+                        <td width="10%" align="center"><?php echo $user->nombre_clase?></td>
+                        <td width="10%" align="center"><?php echo $user->año?></td>
+                    <form method="post">
+                        <td width="5%" align="center"><input type="text" value="<?php echo $mes_nombre ?>"></td>
+                        <td width="5%" align="center"><input type="number" name="precio" min="0" step=".05" value="<?php echo $user->precio_clase;?>"></td>
+                        <td width="5%" align="center"><input type="checkbox" name="pago" value=1 <?php if($user->pagado==1){echo 'checked="checked"';} ?> required></td>
+                        <input type="hidden" name="id_pago" value="<?php echo $user->id_pago ?>">
+                        <input type="hidden" name="email" value="<?php echo $user->email ?>">
+                        <input type="hidden" name="nombre_clase" value="<?php echo $user->nombre_clase ?>">
+                        <td width="10%" align="center"><textarea name="comentario" id="comentario" cols="30" rows="1"></textarea></td>
+                        <td width="5%" align="center"><input type="submit" name="guarda_pago" value="Pagar"></td>
+                    </form>
+                    </tr>
+            <?php
+            }
+            ?>
+                </table>
+                
+            
+        <?php
+            
+        }
+    }
+}//cierre funcion
+
+?>
